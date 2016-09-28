@@ -153,4 +153,99 @@ main = putStrLn
 with no parameter and see what error you get.
 
 
+3. Getting something over HTTP
+
+So that's pretty boring.
+
+Let's do something over the internet.
+
+A library I like for http is [wreq](https://hackage.haskell.org/package/wreq) - there's a tutorial linked from that page if you want to read more later.
+
+```
+*Main> import Network.Wreq
+
+<no location info>: error:
+    Could not find module ‘Network.Wreq’
+    It is not a module in the current program, or in any known package.
+*Main> 
+```
+
+edit hw.cabal, the `build-depends:` line:
+
+```
+  build-depends:       base >= 4.7 && < 5, wreq
+```
+
+and when you run `stack ghci` again, we will have it available.
+stack will download anything it needs to make wreq available.
+(note to self: might install these as part of the
+ch0 setup so that we have them locally)
+
+and now we can:
+
+```
+*Main> import Network.Wreq
+*Main Network.Wreq> 
+```
+
+This gives us some functions for accessing HTTP. For example:
+
+
+```
+*Main Network.Wreq> get "http://www.google.com/"
+
+...
+[massive dump of data]
+```
+
+What type is get?
+
+```
+*Main Network.Wreq> :t get
+get
+  :: String
+     -> IO
+          (Response
+             bytestring-0.10.8.1:Data.ByteString.Lazy.Internal.ByteString)
+```
+
+We feed in a string, and this will do some IO and return a Reponse.
+
+Types can have parameters too! in this case, this long ByteString type. We'll ignore that bit for now...
+
+Let's talk to reddit, and ask it for JSON, and
+let's store the response in a variable so that we can access it later:
+
+```
+*Main Network.Wreq>  r <- get "http://www.reddit.com/.json"
+*Main Network.Wreq> :t r
+r :: Response
+       bytestring-0.10.8.1:Data.ByteString.Lazy.Internal.ByteString
+```
+
+(and if you type just `r` you'll get a big dump again)
+
+You can load [that url](http://www.reddit.com/.json) in your browser, and compare it with
+the reddit [human readable front page](http://www.reddit.com/).
+
+Now we can see we have a big data structure - we can use some other libraries to dig into it.
+So add these as dependencies in `hw.cabal` just like you did for wreq:
+`lens` and `aeson` and go back into ghci.
+
+```
+*Main> import Network.Wreq
+*Main Network.Wreq> import Control.Lens
+```
+
+`lens` provides a way to focus on a portion of a Haskell value - for example fields in a data structure.
+`aeson` is a JSON library.
+
+We can use lens to ask for the response status, stored in the Response value:
+
+```
+*Main Network.Wreq Control.Lens> r <- get "http://www.reddit.com/.json"
+*Main Network.Wreq Control.Lens> r ^. responseStatus
+Status {statusCode = 200, statusMessage = "OK"}
+```
+
 

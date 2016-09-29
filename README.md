@@ -240,12 +240,14 @@ So add these as dependencies in `hw.cabal` just like you did for wreq:
 `lens` provides a way to focus on a portion of a Haskell value - for example fields in a data structure.
 `aeson` is a JSON library.
 
-We can use lens to ask for the response status, stored in the Response value:
+We can use `lens` to ask for the response status, stored in the Response value:
 
 ```
 *Main Network.Wreq Control.Lens> r <- get "http://www.reddit.com/.json"
 *Main Network.Wreq Control.Lens> r ^. responseStatus
 Status {statusCode = 200, statusMessage = "OK"}
 ```
+
+and we can go further into the response, and dig straight into fields in the JSON, like this:
 
 

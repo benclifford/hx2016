@@ -6,7 +6,18 @@ TODO: get a reddit account
 1. intro:
 
 i'm going to talk us through building a bot that talks to reddit. you can
-follow along on your laptop.
+follow along on your laptop. I'm not going to dig too much into the
+exact rules for what is going on or the exact details of the libraries
+that we're going to use, but hopefully you'll have a working
+program which which to experiment which, or go read about later
+(or if we have time, I can explain some bits in more depth).
+
+Also, you'll find things introduced in an order which works for the
+tutorial, which is not at all like the order you'd see things in
+a haskell textbook... and I'll miss out things that I didn't need that
+are pretty useful in haskell
+
+It's based on a real life bot that works on r/LondonSocialClub.
 
 1.1 first let's find out what level of experience people have so I can try
 to adjust the pace.
@@ -217,7 +228,7 @@ Let's talk to reddit, and ask it for JSON, and
 let's store the response in a variable so that we can access it later:
 
 ```
-*Main Network.Wreq>  r <- get "http://www.reddit.com/.json"
+*Main Network.Wreq>  r <- get "http://www.reddit.com/r/haskell.json"
 *Main Network.Wreq> :t r
 r :: Response
        bytestring-0.10.8.1:Data.ByteString.Lazy.Internal.ByteString
@@ -225,12 +236,12 @@ r :: Response
 
 (and if you type just `r` you'll get a big dump again)
 
-You can load [that url](http://www.reddit.com/.json) in your browser, and compare it with
-the reddit [human readable front page](http://www.reddit.com/).
+You can load [that url](http://www.reddit.com/r/haskell.json) in your browser, and compare it with
+the reddit [human readable page](http://www.reddit.com/r/haskell).
 
 Now we can see we have a big data structure - we can use some other libraries to dig into it.
 So add these as dependencies in `hw.cabal` just like you did for wreq:
-`lens` and `aeson` and go back into ghci.
+`lens` and `aeson` and `lens-aeson` and go back into ghci.
 
 ```
 *Main> import Network.Wreq
@@ -248,6 +259,161 @@ We can use `lens` to ask for the response status, stored in the Response value:
 Status {statusCode = 200, statusMessage = "OK"}
 ```
 
+or we can dig down a bit further, like this:
+
+r ^. responseStatus . statusMessage
+
 and we can go further into the response, and dig straight into fields in the JSON, like this:
+(with more imports...)
+
+TODO: need overloaded strings here - can introduce language extensions - do the thing, then explain afterwards.
 
 
+*Main Network.Wreq Control.Lens Data.Aeson.Lens Data.Aeson> 
+ r ^. responseBody . key "kind" 
+
+whoops, it didn't work...
+
+but this does...
+
+r ^? responseBody . key "kind" 
+Just (String "Listing")
+
+so we got this first bit of the response body
+
+```
+"{\"kind\": \"Listing\", \"dat ...
+```
+
+back.
+
+TODO: note to self, do I want to introduce only ^? at this point, and not ^. ? Swap that complexity
+out for introducing Maybe at this point, which is probably better value
+
+
+Look at the types: the first will *definitely* return a status value
+:t (r ^. responseStatus)
+(r ^. responseStatus) :: Status
+
+but this one might maybe will return a status (or maybe will return nothing)
+:t (r ^? responseStatus)
+(r ^? responseStatus) :: Maybe Status
+
+(in fact it always will in this case - which is why ^. works... but this is a bit beyond
+introductory...)
+
+so lets get all the posts, as a vector:
+
+> r ^. responseBody . key "data" . key "children"  . _Array
+
+(this gives us a big pile of stuff still... awkward to read)
+
+but we can say things like:
+
+:t r ^. responseBody . key "data" . key "children"  . _Array
+(r ^. responseBody . key "data" . key "children"  . _Array)
+  :: vector-0.11.0.0:Data.Vector.Vector Value
+
+This says this is a "vector" where the contents are (JSON) values.
+
+A vector has the property that we can find out how long it is, like this:
+
+> length (r ^. responseBody . key "data" . key "children"  . _Array)
+25
+
+and see there are 25 posts in the returned data.
+
+'length' is another standard Haskell function, that will tell you how big collections of data are (there is a more formal definition, that it gives you the length of 'Foldable' structures - but we won't address exactly what that means here)
+
+The standard type you'll see in haskell tutorials is a list, not a Vector is what the aeson lens library happens to return. You can call 'length' on lists too, like this:
+
+```
+> length [6,7,8]
+3
+```
+
+We can assign the posts to a variable, like this:
+
+```
+let posts = r ^. responseBody . key "data" . key "children"  . _Array
+:t posts
+length posts
+25
+
+```
+
+We use 'let x = y' here not 'x <- y'. Why?
+
+Well this way usually lies the rathole of attempting to explain monads... which I'm not going to really try to do.
+
+Let's look at the types:
+
+```
+> :t r ^. responseBody . key "data" . key "children"   . _Array
+r ^. responseBody . key "data" . key "children"   . _Array
+  :: vector-0.11.0.0:Data.Vector.Vector Value
+*Main Control.Lens Data.Aeson.Lens Network.Wreq Data.Aeson> :t posts
+posts :: vector-0.11.0.0:Data.Vector.Vector Value
+```
+
+posts has the same type as the expression on the right side - that's variable assignment that looks fairly
+normal compared to other programming languages. We aren't doing anything apart from taking some values
+we already have and computing something purely from those values - that's a *pure computation@
+in Haskell. If we run it lots of times, or on different computers, or tomorrow, the result
+will (should) always be the same.
+
+but go back to when we made an HTTP request.
+
+That isn't a pure value - whenever we make a request, we expect to get whatever is on reddit right now.
+The whole point of it is that - and tomorrow when we run it, we absolutely expect that we'll
+get a different answer.
+
+
+
+
+
+Let's put some of this into our hello-world program, to give this output:
+
+```
+$ stack exec hw
+Counting posts
+Response status:
+Status {statusCode = 200, statusMessage = "OK"}
+Number of posts:
+25
+
+```
+
+
+You can try doing it yourself, or look at the program below.
+
+
+Two things to note are the use of 'print' to print out things that the
+'ghci' command line prints for us already, and how to specify the
+OverloadedStrings language extension.
+
+```
+$ cat src/Main.hs 
+{-# LANGUAGE OverloadedStrings #-}
+
+module Main where
+
+import Control.Lens 
+import Network.Wreq
+import Data.Aeson
+import Data.Aeson.Lens
+
+main :: IO ()
+main = do
+  putStrLn "Counting posts"
+  r <- get "http://www.reddit.com/.json"
+  putStrLn "Response status:"
+  print (r ^. responseStatus)
+  let posts = r ^. responseBody . key "data" . key "children"  . _Array
+  putStrLn "Number of posts:"
+  print (length posts)
+```
+
+-- TODO: get some data structures and do some stuff like map, list lengths, etc, fold?
+
+-- TODO: typeclasses

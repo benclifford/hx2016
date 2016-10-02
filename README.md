@@ -19,6 +19,8 @@ are pretty useful in haskell
 
 It's based on a real life bot that works on r/LondonSocialClub.
 
+So this is going to feel very in-at-the-deep-end.
+
 1.1 first let's find out what level of experience people have so I can try
 to adjust the pace.
 
@@ -368,11 +370,43 @@ That isn't a pure value - whenever we make a request, we expect to get whatever 
 The whole point of it is that - and tomorrow when we run it, we absolutely expect that we'll
 get a different answer.
 
+That's reflected in the type system, like we saw at the start.
+
+```
+>  r <- get "http://www.reddit.com/r/haskell.json"
+
+> :t get "http://www.reddit.com/r/haskell.json"
+get "http://www.reddit.com/r/haskell.json"
+  :: IO
+       (Response
+          bytestring-0.10.6.0:Data.ByteString.Lazy.Internal.ByteString)
+
+> :t r
+r :: Response
+       bytestring-0.10.6.0:Data.ByteString.Lazy.Internal.ByteString
+
+```
+
+`IO a` means this an action that knows how to do some IO and return a value of type 'a',
+and the syntax
+
+r <- action
+
+means to actually run that action, and assign the returned value.
+
+'IO' is a bit of a bag of dirty laundry(?) for Haskell - we spend a lot
+of time talking about functional purity and all sorts of benefits that
+arise from it, but then sometimes just to be practical, you can shove
+all sorts into 'IO'. But try to avoid it if you can, because it limits
+your ability to reason about what the code will actually do.
+
+When people talk about monads, they're basically talking about
+stuff you can use with this kind of syntax. 'IO' is an example, but
+there is a range of different ones that capture different effects,
+perhaps more nuanced than IO, or perhaps not possible in IO.
 
 
-
-
-Let's put some of this into our hello-world program, to give this output:
+Let's consolidate everything so into our hello-world program, to give this output:
 
 ```
 $ stack exec hw
@@ -414,6 +448,8 @@ main = do
   print (length posts)
 ```
 
--- TODO: get some data structures and do some stuff like map, list lengths, etc, fold?
 
--- TODO: typeclasses
+
+-- TODO: some data structures?
+
+-- TODO: typeclasses / abstractions over type?

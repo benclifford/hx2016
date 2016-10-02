@@ -22,7 +22,7 @@ It's based on a real life bot that works on r/LondonSocialClub.
 So this is going to feel very in-at-the-deep-end.
 
 1.1 first let's find out what level of experience people have so I can try
-to adjust the pace.
+to adjust the pace:
 
 put your hand up who:
 
@@ -467,6 +467,33 @@ Back in ghci, lets define a data type that can store
 some information about our post - we'll start with
 just two fields, and get bigger later.
 
+We need to add in a new package, 'text' so that we can
+refer to the 'Text' type.
+
+```
+> import Data.Text
+```
+
+now we can define a `Post` data type with a couple of
+fields. In `ghci` this has to go all on one line.
+
+```
+data Post = P { author :: Text, title :: Text } deriving Show
+```
+
+Now we can make Post structures at the ghci prompt:
+
+```
+> P "ben" "a post"
+P {author = "ben", title = "a post"}
+
+> :t P "ben" "a post"
+P "ben" "a post" :: Post
+```
+
+So what we want to do is somehow convert that `Vector Value`,
+a vector of json values, in `Vector Post`, a vector of our
+Posts.
 
 
 

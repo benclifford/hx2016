@@ -448,6 +448,57 @@ main = do
   print (length posts)
 ```
 
+next
+====
+
+where are we?
+
+we have a Vector of posts that we've fetched live from reddit,
+and we've counted how many posts have come back. if we look
+at any one of those posts, they're still each individually a
+big awkward pile of JSON.
+
+We could dig into them with further lenses to pull out
+individual fields, such as the title and the author, but
+maybe it would be nice to have a proper Haskell data
+structure that can represent a post.
+
+Back in ghci, lets define a data type that can store
+some information about our post - we'll start with
+just two fields, and get bigger later.
+
+
+
+
+{- interactively, then move over to
+putting a bigger definition in a file that we can load
+into GHCi -}
+
+{- TODO 
+so: have a look at what is inside the post structure -
+extract title, author and permalink,
+date and votes
+perhaps?
+
+do this using a data definition. maybe we'll have described
+Maybe earlier on?
+
+this is a bit more the traditional "functional programming"
+bread and butter.
+note that most of these can happen as pure functions,
+aside from printing - comment that a way of structuring
+code is you try to keep as much out of IO as possible.
+
+filter on author, or on title
+
+sort by votes; sort by date; print the top 3 of each.
+iterate using 'for' to print)
+
+make functions: printBest ps, printRecent ps
+(use 'ps' and note idiomatic style of 'p' for post, 'ps' for
+several posts)
+
+-}
 
 
 -- TODO: some data structures?

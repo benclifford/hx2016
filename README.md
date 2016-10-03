@@ -491,9 +491,127 @@ P {author = "ben", title = "a post"}
 P "ben" "a post" :: Post
 ```
 
-So what we want to do is somehow convert that `Vector Value`,
+So what we want to do is convert that `Vector Value`,
 a vector of json values, in `Vector Post`, a vector of our
 Posts.
+
+We need two tools to do this:
+
+i) a function that converts a single Value into a
+single Post;
+
+and
+
+ii) a function that applies another function to
+every position in a vector.
+
+Let's get a JSON 'Value' that contains a post by replacing _Array (which gives us a vector) with `nth 0` with gives us the 0th post:
+
+```
+> let post = p ^? responseBody . key "data" . key "children"  . nth 0
+> post
+[... you should see this is just one post ...]
+> :t post
+post :: Maybe Value
+```
+
+It's a (Maybe Value) - because we might be on a subreddit that has no posts, and this is reflected in the type system! it might not have any post to be the 0th post.
+
+
+=== functor interlude ===
+
+We have two "containers" of 'Value's here - where the type looks
+like *F* Value: Maybe Value and Vector Value - one of them
+contains Nothing or Just a single Value; the other can have 0 or
+more Values. And we can stick in any type there, for example
+'Maybe Integer', or 'Vector Text'.
+
+It happens that these are both 'Functor's - which are data
+structures where we can apply some function to all of the
+"contained" data.
+
+We can apply functions using 'fmap'. An example is
+a function (const 1) that always returns 1, no matter what
+you pass in.
+
+For example:
+
+```
+> (const 1) 5
+1
+> (const 1) "hello"
+1
+```
+
+That's a bit useless on its own, but we can say:
+
+```
+> length posts
+26
+> fmap (const 1) posts
+[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+> length (fmap (const 1) posts)
+26
+```
+
+So we've replaced everything in the Vector with the value 1,
+but there are still 26 positions, like there were in the
+input. We still got a vector out.
+
+Same for a Maybe:
+
+```
+> fmap (const 1) Nothing
+Nothing
+> fmap (const 1) (Just "hello") 
+Just 1
+```
+
+We still got a Maybe out, but now it's a Maybe with
+a number in it, instead of a String.
+
+So we can change the type of the "inside" value but keep
+the "shape" of the outside.
+
+
+===
+
+So can we convert this post-as-a-value into a 'Post' type?
+
+Haskell can do this conversion for us, using a feature called
+Generics:
+
+Turn on the new language features we need:
+```
+> :set -XDeriveGeneric
+> :set -XDeriveAnyClass
+> import GHC.Generics
+```
+
+and declare Post again, with more 'deriving' clauses:
+
+```
+data Post = P { author :: Text, title :: Text } deriving (Show, Generic, FromJSON)
+```
+
+The 'Generics' bit is some necessary plumbing, but the
+'FromJSON' bit says we want the aeson package to figure out
+how to parse JSON into a Post structure for us by matching
+up field titles.
+
+
+
+
+
+So now we can say this (which is icky and I would like to
+tidy up TODO):
+
+> fmap fromJSON (p ^? responseBody . key "data" . key "children"  . nth 0  . key "data") :: Maybe (Result Post)
+
+
+fmap because we're inside the maybe, but now Result is its own
+different-maybe (or rather different-either)
+
 
 
 

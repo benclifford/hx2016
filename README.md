@@ -741,9 +741,16 @@ for ps $ \p -> printPost p
 
 Check r/haskell and see if the posts match up... they should.
 
-{- interactively, then move over to
-putting a bigger definition in a file that we can load
-into GHCi -}
+Now get this put in the file so that when you run the
+main program, it pretty-prints a list of post titles/authors.
+
+Next add in some more fields (perhaps url? number of votes?)
+making sure to choose sensible types - most likely
+Text and Integer.
+
+As long as the field names match up between 'data Post' and
+the reddit JSON, the fields will automatically become
+available thanks to generics.
 
 {- TODO 
 so: have a look at what is inside the post structure -

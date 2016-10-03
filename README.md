@@ -570,15 +570,26 @@ Just 1
 We still got a Maybe out, but now it's a Maybe with
 a number in it, instead of a String.
 
-So we can change the type of the "inside" value but keep
+So with 'fmap' can change the values and the type of
+values of the "inside" but we are forced to keep
 the "shape" of the outside.
-
-
 ===
 
-So can we convert this post-as-a-value into a 'Post' type?
+So lets consolidate what we have: we've got a structure
+of 0 or more JSON posts (type 'Vector Value') - actually
+it's 26 posts but we can't tell that from the type;
+and we've got a structure that might contain the first
+post if it exists, or it might contain Nothing
+(type 'Maybe Value'), and now we know if we have a
+function that operates on Values, we can apply it to the
+insides of either of those structures, using fmap.
 
-Haskell can do this conversion for us, using a feature called
+
+So, can we make up a function that we can apply with fmap, that
+will turn a Value into a Post? so that we can have a bit
+more type safety...
+
+Haskell can do some of this conversion for us, using a feature called
 Generics:
 
 Turn on the new language features we need:
@@ -599,21 +610,136 @@ The 'Generics' bit is some necessary plumbing, but the
 how to parse JSON into a Post structure for us by matching
 up field titles.
 
+This won't work with the JSON values we've got because
+they have too much wrapping. We'll need to unwrap one more
+layer to get rid of this "type"/"data" stuff and get to the
+fields we want.
+
+This is a longer definition so lets turn on multiline mode:
+
+Pay attention to the indentation here!
+
+```
+> :set +m
+> let unwrap v = case (v ^? key "data") of
+>       Nothing -> error "no data"
+>       Just x -> x
+> <newline to end>
+```
+
+So now we can use this on post or posts, to unwrap one or all of the
+posts:
+
+```
+> fmap unwrap post
+> fmap unwrap posts
+```
+
+and we can use 'fromJSON' alongside unwrap, like this:
+
+```
+> fmap (fromJSON . unwrap) post :: Maybe (Result Post)
+```
+
+So (fromJSON . unwrap) is function composition: it
+puts unwrap and fromJSON together and makes them into
+a single function - we can use that wherever we can
+use a function, eg as the parameter to fmap.
+
+This is a difference from some more traditional languages
+where all functions have names - in haskell you can make
+up functions from building blocks.
+
+The other thing here is we have to say 'Maybe (Result Post)'
+because ghci doesn't know what you want to convert
+the JSON into -- sometimes it can figure out the types but
+not always.
+
+Let's get Data.Vector imported and we can convert all of
+'posts' ... add 'vector' as a dependency in hw.cabal.
+
+Probably at this point we should get more of our definitions
+put into our source file. (TODO)
 
 
+Note that FromJSON wraps results up in a Result type - 
+it returns, not a Post, but a Result Post. This is
+defined as being either a "Success Post" - indicating
+that we've successfully got a post value; or
+an 'Error String' indicating that we've got an error,
+and carrying along an error message.
 
+This is how it is defined in the aeson library
+- a bit like our earlier data definition, but 
+using '|' to represent alternatives - we can
+pick either to have an Error or a Success.
 
-So now we can say this (which is icky and I would like to
-tidy up TODO):
+```
+data Result a = Error String | Success a 
+```
 
-> fmap fromJSON (p ^? responseBody . key "data" . key "children"  . nth 0  . key "data") :: Maybe (Result Post)
+So this is a bit like a Maybe value - it can represent
+that there's is a value, or that "something went wrong"
+so a Success is like the 'Just' case of Maybe. But the
+Nothing equivalent, Error, is richer.
 
+A pretty common pattern in haskell libraries is this
+either a success or some error, and use 'case' as
+before to choose between the behaviour when we
+succeed or fail.
 
-fmap because we're inside the maybe, but now Result is its own
-different-maybe (or rather different-either)
+Now for all of our posts, we've got this sort of awkward
+structure -- we have a vector, and that vector contains
+some Successes with associated Posts and some Errors without
+a post...
 
+Let's have another syntactic form, then - comprehensions.
+If you've used list comprehensions in python, these are
+very similar to that.
 
+```
+> :set -XMonadComprehensions
 
+> let ps = [p | x <- posts, (Success p) <- return $ (fromJSON . unwrap) x] :: Vector Post
+<<newline>>
+> :t ps
+ps :: Vector Post
+```
+
+We can do a pattern match here so that only things matching Success get matched... the Errors disappear into the void.
+
+(It turns out you can use this syntax in the same places you can use
+'do' notation - this is another way to use the infamous monads, and
+also create similar effects to fmap... that doesn't matter here but
+there is a connection underneath)
+
+Now we have a nice vector of just the valid posts. When we print it,
+it's all still pretty hard to read though. Maybe we can do something
+better...
+
+```
+for ps $ \p -> print p
+```
+
+That gives us one per line... it goes over each element in the post
+vector, and uses 'print' that we've seen before on that post.
+(we can print Posts because Post is an instance of Show)
+
+We can make this prettier, by making our own print routine that
+specially knows about printing posts:
+
+```
+let printPost :: Post -> IO ()
+    printPost p = do
+      print (title p)
+      putStr "    by "
+      print (author p)
+
+for ps $ \p -> printPost p
+[... output ...]
+```
+
+Check r/haskell and see if the posts match up... they should.
 
 {- interactively, then move over to
 putting a bigger definition in a file that we can load

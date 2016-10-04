@@ -23,7 +23,7 @@ master.zip](https://github.com/benclifford/hx2016/archive/master.zip)
 and uncompress it.
 
 ```
-$ cd prereqs
+$ cd hx2016-prereqs
 $ stack setup
 $ stack build
 $ stack exec hx2016-prereqs

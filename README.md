@@ -150,18 +150,22 @@ So `putStrLn` takes a string and returns nothing, maybe doing some IO.
 
 We can take the types of arbitrary expressions too:
 
-*Main> :t (putStrLn "hello")
+```
+*Main> :t putStrLn "hello"
 (putStrLn "hello") :: IO ()
+```
 
 That says putStrLn "hello"  doesn't take any arguments (because we've applied the argument it wanted)
 and does some IO.
 
-and what's important here? the type of putStrLn "hello" is the same as main.
+and what's important here? the type of 'putStrLn "hello"' is the same as main.
 Otherwise we'd get a type checking error.
 
 For example, you could try compiling 
 
+```
 main = putStrLn
+```
 
 with no parameter and see what error you get.
 
@@ -175,7 +179,7 @@ Let's do something over the internet.
 A library I like for http is [wreq](https://hackage.haskell.org/package/wreq) - there's a tutorial linked from that page if you want to read more later.
 
 ```
-*Main> import Network.Wreq
+*Main> import Network.Wreq as WR
 
 <no location info>: error:
     Could not find module ‘Network.Wreq’
@@ -197,7 +201,7 @@ ch0 setup so that we have them locally)
 and now we can:
 
 ```
-*Main> import Network.Wreq
+*Main> import Network.Wreq as WR
 *Main Network.Wreq> 
 ```
 
@@ -205,7 +209,7 @@ This gives us some functions for accessing HTTP. For example:
 
 
 ```
-*Main Network.Wreq> get "http://www.google.com/"
+*Main Network.Wreq> WR.get "http://www.google.com/"
 
 ...
 [massive dump of data]
@@ -214,8 +218,8 @@ This gives us some functions for accessing HTTP. For example:
 What type is get?
 
 ```
-*Main Network.Wreq> :t get
-get
+*Main Network.Wreq> :t WR.get
+WR.get
   :: String
      -> IO
           (Response
@@ -230,7 +234,7 @@ Let's talk to reddit, and ask it for JSON, and
 let's store the response in a variable so that we can access it later:
 
 ```
-*Main Network.Wreq>  r <- get "http://www.reddit.com/r/haskell.json"
+*Main Network.Wreq> r <- WR.get "http://www.reddit.com/r/haskell.json"
 *Main Network.Wreq> :t r
 r :: Response
        bytestring-0.10.8.1:Data.ByteString.Lazy.Internal.ByteString
@@ -256,30 +260,34 @@ So add these as dependencies in `hw.cabal` just like you did for wreq:
 We can use `lens` to ask for the response status, stored in the Response value:
 
 ```
-*Main Network.Wreq Control.Lens> r <- get "http://www.reddit.com/.json"
 *Main Network.Wreq Control.Lens> r ^. responseStatus
 Status {statusCode = 200, statusMessage = "OK"}
 ```
 
 or we can dig down a bit further, like this:
 
+```
 r ^. responseStatus . statusMessage
+```
 
 and we can go further into the response, and dig straight into fields in the JSON, like this:
 (with more imports...)
 
 TODO: need overloaded strings here - can introduce language extensions - do the thing, then explain afterwards.
 
-
+```
 *Main Network.Wreq Control.Lens Data.Aeson.Lens Data.Aeson> 
  r ^. responseBody . key "kind" 
+```
 
 whoops, it didn't work...
 
 but this does...
 
+```
 r ^? responseBody . key "kind" 
 Just (String "Listing")
+```
 
 so we got this first bit of the response body
 
@@ -294,36 +302,45 @@ out for introducing Maybe at this point, which is probably better value
 
 
 Look at the types: the first will *definitely* return a status value
+
+```
 :t (r ^. responseStatus)
 (r ^. responseStatus) :: Status
+```
 
 but this one might maybe will return a status (or maybe will return nothing)
+
+```
 :t (r ^? responseStatus)
 (r ^? responseStatus) :: Maybe Status
-
-(in fact it always will in this case - which is why ^. works... but this is a bit beyond
-introductory...)
+```
 
 so lets get all the posts, as a vector:
 
+```
 > r ^. responseBody . key "data" . key "children"  . _Array
+```
 
 (this gives us a big pile of stuff still... awkward to read)
 
 but we can say things like:
 
+```
 :t r ^. responseBody . key "data" . key "children"  . _Array
 (r ^. responseBody . key "data" . key "children"  . _Array)
   :: vector-0.11.0.0:Data.Vector.Vector Value
+```
 
 This says this is a "vector" where the contents are (JSON) values.
 
 A vector has the property that we can find out how long it is, like this:
 
+```
 > length (r ^. responseBody . key "data" . key "children"  . _Array)
-25
+26
+```
 
-and see there are 25 posts in the returned data.
+and see there are 26 posts in the returned data.
 
 'length' is another standard Haskell function, that will tell you how big collections of data are (there is a more formal definition, that it gives you the length of 'Foldable' structures - but we won't address exactly what that means here)
 
@@ -360,7 +377,7 @@ posts :: vector-0.11.0.0:Data.Vector.Vector Value
 
 posts has the same type as the expression on the right side - that's variable assignment that looks fairly
 normal compared to other programming languages. We aren't doing anything apart from taking some values
-we already have and computing something purely from those values - that's a *pure computation@
+we already have and computing something purely from those values - that's a *pure computation*
 in Haskell. If we run it lots of times, or on different computers, or tomorrow, the result
 will (should) always be the same.
 
@@ -390,7 +407,9 @@ r :: Response
 `IO a` means this an action that knows how to do some IO and return a value of type 'a',
 and the syntax
 
+```
 r <- action
+```
 
 means to actually run that action, and assign the returned value.
 
@@ -471,14 +490,14 @@ We need to add in a new package, 'text' so that we can
 refer to the 'Text' type.
 
 ```
-> import Data.Text
+> import Data.Text as T
 ```
 
 now we can define a `Post` data type with a couple of
 fields. In `ghci` this has to go all on one line.
 
 ```
-data Post = P { author :: Text, title :: Text } deriving Show
+data Post = P { author :: T.Text, title :: T.Text } deriving Show
 ```
 
 Now we can make Post structures at the ghci prompt:
@@ -524,7 +543,7 @@ We have two "containers" of 'Value's here - where the type looks
 like *F* Value: Maybe Value and Vector Value - one of them
 contains Nothing or Just a single Value; the other can have 0 or
 more Values. And we can stick in any type there, for example
-'Maybe Integer', or 'Vector Text'.
+'Maybe Integer', or 'Vector T.Text'.
 
 It happens that these are both 'Functor's - which are data
 structures where we can apply some function to all of the
@@ -573,6 +592,7 @@ a number in it, instead of a String.
 So with 'fmap' can change the values and the type of
 values of the "inside" but we are forced to keep
 the "shape" of the outside.
+
 ===
 
 So lets consolidate what we have: we've got a structure
@@ -602,7 +622,7 @@ Turn on the new language features we need:
 and declare Post again, with more 'deriving' clauses:
 
 ```
-data Post = P { author :: Text, title :: Text } deriving (Show, Generic, FromJSON)
+data Post = P { author :: T.Text, title :: T.Text } deriving (Show, Generic, FromJSON)
 ```
 
 The 'Generics' bit is some necessary plumbing, but the
@@ -634,6 +654,7 @@ posts:
 > fmap unwrap post
 > fmap unwrap posts
 ```
+
 
 and we can use 'fromJSON' alongside unwrap, like this:
 
@@ -751,6 +772,23 @@ Text and Integer.
 As long as the field names match up between 'data Post' and
 the reddit JSON, the fields will automatically become
 available thanks to generics.
+
+
+TODO: insert a summary conclusion of topics covered so far
+
+end of part 1.
+
+part 2
+======
+
+We're successfully accessing reddit in a read-only mode now,
+using a small pile of different haskell libraries.
+
+What can we do next? The real bot this tutorial is based of
+processes the titles of posts, and makes calls to reddit
+after authenticating.
+
+
 
 {- TODO 
 so: have a look at what is inside the post structure -

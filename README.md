@@ -739,12 +739,19 @@ it's all still pretty hard to read though. Maybe we can do something
 better...
 
 ```
-for ps $ \p -> print p
+import Data.Traversable
+mapM print ps
 ```
 
 That gives us one per line... it goes over each element in the post
 vector, and uses 'print' that we've seen before on that post.
 (we can print Posts because Post is an instance of Show)
+
+and then it gives us a vector of lots of () values - because
+mapM performs the IO but also replaces the elements in the
+input structure (ps) with the result of 'print', which is always
+(). In that respect it is a bit like 'fmap' but rather than
+mapping pure functions, it allows the map function to do IO.
 
 We can make this prettier, by making our own print routine that
 specially knows about printing posts:
@@ -756,7 +763,7 @@ let printPost :: Post -> IO ()
       putStr "    by "
       print (author p)
 
-for ps $ \p -> printPost p
+mapM printPost ps
 [... output ...]
 ```
 
@@ -773,7 +780,6 @@ As long as the field names match up between 'data Post' and
 the reddit JSON, the fields will automatically become
 available thanks to generics.
 
-
 TODO: insert a summary conclusion of topics covered so far
 
 end of part 1.
@@ -781,42 +787,27 @@ end of part 1.
 part 2
 ======
 
-We're successfully accessing reddit in a read-only mode now,
-using a small pile of different haskell libraries.
+This part is intended to be much harder, either because we
+have time, or because part 1 is too easy.
 
-What can we do next? The real bot this tutorial is based of
-processes the titles of posts, and makes calls to reddit
-after authenticating.
+The real bot that this tutorial is based on does a lot more
+than what has bee written so far.
 
+* Authenticating to reddit, and passing that authentication
+  information around through out the program.
 
+* Make API calls that change things - rather than passively
+  reading.
 
-{- TODO 
-so: have a look at what is inside the post structure -
-extract title, author and permalink,
-date and votes
-perhaps?
+* Parsing titles to extract information
 
-do this using a data definition. maybe we'll have described
-Maybe earlier on?
+* Looking at the current time
 
-this is a bit more the traditional "functional programming"
-bread and butter.
-note that most of these can happen as pure functions,
-aside from printing - comment that a way of structuring
-code is you try to keep as much out of IO as possible.
+* Running periodically
 
-filter on author, or on title
+* Catching runtime exceptions
 
-sort by votes; sort by date; print the top 3 of each.
-iterate using 'for' to print)
-
-make functions: printBest ps, printRecent ps
-(use 'ps' and note idiomatic style of 'p' for post, 'ps' for
-several posts)
-
--}
+* Reading a configuration file and using ReaderT to make that
+  available to parts of the program
 
 
--- TODO: some data structures?
-
--- TODO: typeclasses / abstractions over type?

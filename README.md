@@ -791,7 +791,7 @@ This part is intended to be much harder, either because we
 have time, or because part 1 is too easy.
 
 The real bot that this tutorial is based on does a lot more
-than what has bee written so far.
+than what has been written so far.
 
 * Authenticating to reddit, and passing that authentication
   information around through out the program.

@@ -801,6 +801,9 @@ than what has been written so far.
 
 * Parsing titles to extract information
 
+* Representing more tightly defined effects in the type
+  system to replace IO and threading of variables
+
 * Looking at the current time
 
 * Running periodically
@@ -810,4 +813,7 @@ than what has been written so far.
 * Reading a configuration file and using ReaderT to make that
   available to parts of the program
 
+There aren't notes for that - just the code of the actual
+bot. We can look at whichever topics people seem interested
+in and do some hands on stuff related to that.
 

@@ -25,7 +25,7 @@ and uncompress it.
 ```
 $ cd hx2016-prereqs
 $ stack setup
-$ stack build
+$ stack build -j4
 $ stack exec hx2016-prereqs
 HASKELL EXCHANGE PREREQS BUILT OK
 ```
